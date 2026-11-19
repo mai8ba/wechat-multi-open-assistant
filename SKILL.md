@@ -2,6 +2,18 @@
 name: wechat-multi-open-assistant
 description: 在 macOS 上为个人合法持有的多个微信账号创建相互独立的本地应用实例（双开/三开/四开），通过唯一 Bundle ID 与本地签名实现数据隔离。默认只做只读检查与变更计划展示，所有修改类步骤须经用户逐项明确确认后才执行，并保留冲突检测、回滚与进程/数据安全边界。当用户提到「微信多开」「微信双开」「微信分身」「微信三开」「微信四开」「多个微信号同时登录」「在 Mac 上再开一个微信」等表述时使用本技能。仅限 macOS，仅限用户本人合法持有并有权使用的账号；不破解客户端协议、不绕过平台风控、不用于批量营销或骚扰。
 agent_created: true
+display_name: "Mac微信多开助理"
+display_name_en: "Mac WeChat Multi-Instance Assistant"
+description_zh: "在 macOS 上为本人合法持有的多个微信账号创建相互隔离的独立应用实例（双开/三开/四开）。默认只读检查并展示完整变更计划，复制、重签名、启动等高影响步骤须经用户逐项明确确认后才执行，含冲突检测、回滚与数据安全边界。当用户提到微信多开、微信双开、微信分身、多个微信号同时登录时使用。不破解协议、不绕过风控。"
+description_en: "Create isolated WeChat app instances on macOS for multiple accounts you legitimately own (dual/triple/quad open). Defaults to read-only checks and a full change plan; high-impact steps such as copying, re-signing, and launching run only after explicit per-step user confirmation. Includes conflict detection, rollback, and data-safety boundaries. Use when the user asks for WeChat multi-open, dual open, clone, or signing into several WeChat accounts on one Mac. Does not modify the client protocol or bypass platform controls."
+category: productivity
+author: "麦爸｜AI 提效"
+version: 0.2.0
+slug: wechat-multi-open-assistant
+displayName: "Mac微信多开助理"
+summary: "在 macOS 上为本人合法持有的多个微信账号创建相互隔离的独立应用实例（双开/三开/四开），默认只读检查、逐项确认后执行，含冲突检测与回滚。"
+tags: [wechat, macos, multi-open, productivity]
+license: MIT
 ---
 
 # Mac微信多开助理
