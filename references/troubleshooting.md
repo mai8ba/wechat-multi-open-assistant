@@ -2,6 +2,14 @@
 
 本文件只在主流程失败或需要判断边界情况时读取。
 
+## 0. 安全边界（优先级最高）
+
+- 所有修改类操作必须先经只读 `--plan` 展示，再由用户逐项明确确认，脚本默认不执行任何写操作。
+- `--apply` 必须携带 `--confirm-plan` 与 `--confirm-steps`；未列入的步骤会被跳过。
+- 不 kill 任何微信进程；目标槽位正在运行时脚本停止。不读取聊天数据目录内容。
+- 任何清理/删除都必须由用户本人执行（先把副本移到废纸篓），Agent 不代劳 rm。
+- 回滚计划：`bash scripts/wechat_multi_open.sh --rollback-plan <槽位>`（只读）。
+
 ## 1. 核心原理
 
 macOS 通过 `CFBundleIdentifier` 区分 App。直接复制 WeChat.app 而不改 Bundle ID，副本会和原版共用同一个沙盒容器（`~/Library/Containers/com.tencent.xinWeChat`），导致数据串号甚至互相踢下线。因此每个副本必须：
