@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.png" alt="Mac微信多开助理" width="180" />
+</p>
+
 # Mac微信多开助理
 
 在 macOS 上为**本人合法持有**的多个微信账号创建相互隔离的独立应用实例（双开 / 三开 / 四开）的 WorkBuddy Skill。
