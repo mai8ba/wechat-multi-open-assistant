@@ -8,17 +8,12 @@ description_zh: "在 macOS 上为本人合法持有的多个微信账号创建�
 description_en: "Create isolated WeChat app instances on macOS for multiple accounts you legitimately own (dual/triple/quad open). Defaults to read-only checks and a full change plan; high-impact steps such as copying, re-signing, and launching run only after explicit per-step user confirmation. Includes conflict detection, rollback, and data-safety boundaries. Use when the user asks for WeChat multi-open, dual open, clone, or signing into several WeChat accounts on one Mac. Does not modify the client protocol or bypass platform controls."
 category: productivity
 author: "麦爸｜AI 提效"
-version: 0.2.1
+version: 0.3.0
 slug: wechat-multi-open-assistant
 displayName: "Mac微信多开助理"
 summary: "在 macOS 上为本人合法持有的多个微信账号创建相互隔离的独立应用实例（双开/三开/四开），默认只读检查、逐项确认后执行，含冲突检测与回滚。"
 tags: [wechat, macos, multi-open, productivity]
 license: MIT
-pricing:
-  model: per_call
-  amount_fen: 200        # 2 元 = 200 分（麦爸已确认）；实际扣款以服务端 402 账单为准
-  currency: CNY
-  payment: alipay_ai_pay_a2m
 ---
 
 # Mac微信多开助理
@@ -36,52 +31,6 @@ pricing:
 - **数据安全**：不读取、不记录、不上传任何聊天数据、二维码或登录凭证；只读取 App 包 `Info.plist` 的标识字段。
 - **冲突保护**：遇到 Bundle ID 与原版冲突的现有副本，只报告、不覆盖、不删除。
 - **可回滚**：任何修改前都能通过 `--rollback-plan N` 查看回滚步骤；回滚也必须由用户执行。
-
-## 付费前置（支付宝 AI 按量付费）【必须遵守】
-
-本技能是「按量付费」技能：每一次 `--apply`（真正修改系统）都必须先由用户通过**支付宝 AI 付**完成支付，取得服务端签发的一次性授权 token。只读命令（`--list` / `--plan` / `--rollback-plan`）**不收费、不需要 token**。
-
-### 步骤 0：付费能力前置检查
-
-执行任何付费流程前，先确认当前 Agent 会话具备支付宝 AI 付能力：
-
-- 检查当前会话是否装载了支付宝官方 Skill（`alipay-aipay`）或具备等价的支付宝支付工具。
-- **若不具备**：立即停止，明确告知用户需要先安装/启用支付宝官方 Skill 才能使用本付费技能。**不得**伪造支付凭证、**不得**跳过付费直接执行 `--apply`、**不得**用自签测试 token 冒充真实支付 token（除非用户明确声明这是本地联调并自行承担）。
-
-### 步骤 1-4：完成 402 支付并拿到授权 token
-
-后端服务（pay-demo）公网地址为 `https://dadenjoyslife.online/aipay`；本地联调可用 `http://localhost:3000`。可用环境变量 `AIPAY_BASE_URL` 覆盖（不要带末尾斜杠）。
-
-1. **请求付费资源（未支付）**：向 `POST /aipay/resource` 发起请求，**不带** `Payment-Proof` 头。预期返回 `HTTP 402` + `Payment-Needed` 响应头（Base64URL 编码账单）。
-2. **支付宝 AI 付**：把 `Payment-Needed` 账单交给支付宝 AI 付能力完成支付，由支付能力产出 `Payment-Proof`。
-3. **带凭证重试**：携带 `Payment-Proof` 头再次请求同一端点。预期 `HTTP 200` + JSON，含 `resource_id`、`content`、`already_fulfilled`、`authorization_token`。
-4. **本地验签 token**：获取公钥并保存为 PEM 文件：
-   ```bash
-   mkdir -p "$HOME/.alipay" && curl "${AIPAY_BASE_URL:-https://dadenjoyslife.online/aipay}/public-key" -o "$HOME/.alipay/pay-demo-public.pem"
-   ```
-   手动复核（可选，token 用环境变量传入）：
-   ```bash
-   AUTH_TOKEN='<上一步返回的 authorization_token>' \
-     node scripts/verify_auth_token.mjs --public-key "$HOME/.alipay/pay-demo-public.pem" --check-only
-   ```
-
-### 步骤 5：把 token 交给本地脚本执行
-
-token 用环境变量传递，避免出现在命令行历史：
-
-```bash
-export AUTH_TOKEN='<上一步返回的 authorization_token>'
-export AUTH_PUBLIC_KEY_PATH="$HOME/.alipay/pay-demo-public.pem"
-bash scripts/wechat_multi_open.sh --apply --total 2 \
-  --confirm-plan <planId> --confirm-steps copy,xattr,plist,codesign
-```
-
-`--apply` 会先调用 `scripts/verify_auth_token.mjs` 做验签 + 过期 + 本地未使用校验；任何一项失败都会以退出码 9/10/11 拒绝执行，且不会产生任何写操作。token 消费后记入 `~/.alipay/auth-token-used.json`，同一 token 不能重复使用。原有的逐项确认安全模型（planId + confirm-steps）保持不变，仍然在 token 校验通过之后生效。
-
-### 定价说明
-
-- 当前定价：**2 元/次**（麦爸已确认），frontmatter `pricing.amount_fen=200`（2 元 = 200 分）。
-- 实际扣款金额以服务端 402 账单的 `amount` 为准（由 `AIPAY_AMOUNT_YUAN` 配置），改价需同步调整两处。
 
 ## 使用边界
 
@@ -116,8 +65,6 @@ bash scripts/wechat_multi_open.sh --plan --total N
 
 ### 5. 执行已确认的步骤
 
-> 前置：必须已完成上方「付费前置」并取得有效 `authorization_token`，否则 `--apply` 会直接拒绝执行。
-
 ```bash
 bash scripts/wechat_multi_open.sh --apply --total N \
   --confirm-plan <第3步输出的planId> \
@@ -150,9 +97,8 @@ bash scripts/wechat_multi_open.sh --rollback-plan <槽位号>
 
 ## 资源
 
-- `scripts/wechat_multi_open.sh` — 只读检查 / 变更计划 / 逐项授权执行 / 回滚计划一体化脚本（含付费 token 硬前置）。
-- `scripts/verify_auth_token.mjs` — 一次性授权 token 本地验签器（验签 / 过期 / 未使用，无第三方依赖）。
-- `references/troubleshooting.md` — 排错与合规说明，仅在失败或边界情况时读取（含付费失败排查）。
+- `scripts/wechat_multi_open.sh` — 只读检查 / 变更计划 / 逐项授权执行 / 回滚计划一体化脚本。
+- `references/troubleshooting.md` — 排错与合规说明，仅在失败或边界情况时读取。
 
 ---
 
