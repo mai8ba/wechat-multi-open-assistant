@@ -1,6 +1,6 @@
 {
   "code": "wechat-multi-open-assistant",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "skill",
   "displayName": "Mac微信多开助理",
   "description": "在 macOS 上为本人合法持有的多个微信账号创建相互隔离的独立应用实例（双开/三开/四开）。默认只读检查并展示完整变更计划，复制、重签名、启动等高影响步骤须经用户逐项明确确认后才执行，含冲突检测、回滚与数据安全边界；不破解协议、不绕过风控。",
@@ -16,5 +16,12 @@
     "为本人多个微信号建立互相隔离的独立实例，避免手动改配置出错",
     "提供只读回滚计划，微信升级后判断旧副本是否需要重建"
   ],
-  "dependsOn": []
+  "dependsOn": [],
+  "pricing": {
+    "model": "per_call",
+    "amount_fen": 200,
+    "currency": "CNY",
+    "payment": "alipay_ai_pay_a2m",
+    "note": "2 元/次（麦爸已确认）；实际扣款以服务端 402 账单为准"
+  }
 }
