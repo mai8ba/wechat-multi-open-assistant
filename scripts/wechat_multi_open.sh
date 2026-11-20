@@ -7,8 +7,6 @@
 #      未列入的步骤一律跳过，脚本不会自动执行。
 #   3. 安全边界：不 kill 任何进程；不在运行中的槽位上改动；不读取聊天数据目录内容。
 #   4. 可回滚：每个模式都输出回滚步骤，另提供 --rollback-plan N（只读）。
-#   5. 付费前置：--apply 必须先校验支付宝 AI 付签发的一次性授权 token，
-#      验签/过期/已使用任一不满足则拒绝执行，绝不绕过。
 set -eo pipefail
 
 BASE_ID="com.tencent.xinWeChat"
@@ -20,9 +18,6 @@ ROLLBACK_SLOT=""
 CONFIRM_PLAN=""
 CONFIRM_STEPS=""
 NO_LAUNCH=0
-AUTH_TOKEN="${AUTH_TOKEN:-}"
-AUTH_PUBLIC_KEY_PATH="${AUTH_PUBLIC_KEY_PATH:-}"
-AUTH_TOKEN_LEDGER="${AUTH_TOKEN_LEDGER:-}"
 
 usage() {
   cat <<'EOF'
@@ -41,9 +36,6 @@ Options:
   --confirm-steps <csv>  --apply 必填：已获用户逐项确认的步骤，逗号分隔
                          可选值：copy,xattr,plist,codesign,launch
   --no-launch            即使确认了 launch 也不启动（安全优先时可加）
-  --auth-token <token>   支付宝 AI 付授权 token（敏感，建议改用环境变量 AUTH_TOKEN）
-  --auth-public-key <path>  授权公钥 PEM 文件路径（或环境变量 AUTH_PUBLIC_KEY_PATH）
-  --auth-token-ledger <path> 本地 token 消费台账（默认 ~/.alipay/auth-token-used.json）
   -h, --help             显示帮助
 
 高风险步骤说明：
@@ -81,15 +73,6 @@ while [ $# -gt 0 ]; do
       [ $# -ge 2 ] || { echo "ERROR: --confirm-steps needs a value" >&2; exit 2; }
       CONFIRM_STEPS="$2"; shift 2 ;;
     --no-launch) NO_LAUNCH=1; shift ;;
-    --auth-token)
-      [ $# -ge 2 ] || { echo "ERROR: --auth-token needs a value" >&2; exit 2; }
-      AUTH_TOKEN="$2"; shift 2 ;;
-    --auth-public-key)
-      [ $# -ge 2 ] || { echo "ERROR: --auth-public-key needs a value" >&2; exit 2; }
-      AUTH_PUBLIC_KEY_PATH="$2"; shift 2 ;;
-    --auth-token-ledger)
-      [ $# -ge 2 ] || { echo "ERROR: --auth-token-ledger needs a value" >&2; exit 2; }
-      AUTH_TOKEN_LEDGER="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "ERROR: unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -253,33 +236,7 @@ if [ "$MODE" = "plan" ]; then
   exit 0
 fi
 
-# ---------- apply：付费授权 + 显式授权后才执行 ----------
-# 付费前置：任何修改类操作都必须先通过一次性 token 校验，失败即拒绝执行。
-if [ -n "$WECHAT_MULTI_OPEN_AUTH_TOKEN" ] && [ -z "$AUTH_TOKEN" ]; then
-  AUTH_TOKEN="$WECHAT_MULTI_OPEN_AUTH_TOKEN"
-fi
-if [ -z "$AUTH_TOKEN" ]; then
-  echo "ERROR: --apply 必须先完成支付宝 AI 付并通过授权 token 校验；未提供 token。" >&2
-  echo "先向付费端点请求资源，完成支付后取得 authorization_token 再执行。" >&2
-  exit 9
-fi
-if [ -z "$AUTH_PUBLIC_KEY_PATH" ]; then
-  echo "ERROR: 缺少授权公钥路径，请用 --auth-public-key 或 AUTH_PUBLIC_KEY_PATH 指定。" >&2
-  echo "公钥获取方式：GET http://localhost:3000/aipay/public-key（保存为 PEM 文件）。" >&2
-  exit 10
-fi
-
-VERIFY_SCRIPT="$(cd "$(dirname "$0")" && pwd)/verify_auth_token.mjs"
-verify_cmd=(node "$VERIFY_SCRIPT" --public-key "$AUTH_PUBLIC_KEY_PATH" --resource-id "/demo/a2m/resource")
-if [ -n "$AUTH_TOKEN_LEDGER" ]; then
-  verify_cmd+=(--ledger "$AUTH_TOKEN_LEDGER")
-fi
-if ! AUTH_TOKEN="$AUTH_TOKEN" "${verify_cmd[@]}" >/dev/null; then
-  echo "ERROR: 授权 token 校验失败（验签/过期/已使用），拒绝执行任何修改。" >&2
-  exit 11
-fi
-echo "=== 授权 token 校验通过（付费前置满足）==="
-
+# ---------- apply：显式授权后才执行 ----------
 if [ -z "$CONFIRM_PLAN" ] || [ "$CONFIRM_PLAN" != "$plan_id" ]; then
   echo "ERROR: --apply 必须提供与本次只读计划一致的 --confirm-plan（当前 planId=$plan_id）。" >&2
   echo "先运行 --plan 展示完整计划并取得用户确认，不要直接执行。" >&2
